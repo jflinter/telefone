@@ -1,3 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
+"use client";
+
 import Image from "next/image";
 import { useState } from "react";
 
@@ -50,7 +53,7 @@ function makeid() {
 const StartScreen: React.FC<{ onStarted: (playerNames: string[]) => void }> = ({
   onStarted,
 }) => {
-  const [splash, setSplash] = useState<boolean>(false);
+  const [splash, setSplash] = useState<boolean>(true);
   const [names, setNames] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
 
@@ -64,7 +67,7 @@ const StartScreen: React.FC<{ onStarted: (playerNames: string[]) => void }> = ({
   if (splash) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-        <h1 className="text-4xl font-bold">Telefone</h1>
+        <h1 className="text-4xl font-bold">Telefone!</h1>
         <button
           className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
           onClick={() => setSplash(false)}
@@ -77,27 +80,35 @@ const StartScreen: React.FC<{ onStarted: (playerNames: string[]) => void }> = ({
   return (
     // UI to enter a list of player names
     <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-      <h1 className="text-4xl font-bold">Telefone</h1>
-      <div>
-        <ul>
-          {names.map((name, index) => (
-            <li key={index}>{name}</li>
-          ))}
-        </ul>
+      <h1 className="text-4xl font-bold">Who is playing?</h1>
+      <ul>
+        {names.map((name, index) => (
+          <li key={index}>{name}</li>
+        ))}
+      </ul>
+      <div className="flex gap-2">
         <input
+          className="border-2 border-black rounded-lg px-2 py-1 text-black"
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Enter a name"
         />
-        <button onClick={handleAddName}>Add Name</button>
         <button
+          className="px-2 py-1 text-md font-semibold text-white bg-blue-500 rounded-lg"
+          onClick={handleAddName}
+        >
+          Add
+        </button>
+      </div>
+      {names.length >= 2 && (
+        <button
+          className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
           onClick={() => onStarted(shuffleArray(names))}
-          disabled={names.length < 2}
         >
           Done
         </button>
-      </div>
+      )}
     </div>
   );
 };
@@ -124,30 +135,33 @@ const InitialTurnScreen: React.FC<{
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">
-          OK, pass the fone to {playerName}! {playerName}, hit Ready when
-          you&apos;ve got the fone!
+          OK, pass the telefone to {playerName}! {playerName}, hit Ready when
+          you&apos;re, you know, ready!
         </h1>
         <button
           className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
           onClick={() => setSplash(false)}
-        ></button>
+        >
+          Ready
+        </button>
       </div>
     );
   }
   return (
     <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-      <h1 className="text-4xl font-bold">
-        OK {playerName}, describe a scene. Adding details about both style and
-        content will help create a rich image, but do whatever you want!
-        Examples (it&apos;s ok to go longer):
-      </h1>
+      <h1 className="text-4xl font-bold">OK {playerName}, describe a scene.</h1>
+      <h2 className="text-2xl font-semibold">
+        Adding details about both style and content will help create a rich
+        image, but do whatever you want! Examples (it&apos;s ok to go longer):
+      </h2>
       <ul>
         {examples.map((example) => (
           <li key={example}>{example}</li>
         ))}
       </ul>
-      <input
-        type="text"
+      <textarea
+        rows={5}
+        className="border-2 border-black rounded-lg px-2 py-1 text-black w-6/12"
         placeholder="Enter a caption"
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
@@ -156,7 +170,9 @@ const InitialTurnScreen: React.FC<{
         className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
         onClick={() => onCaption(caption)}
         disabled={caption.trim() === ""}
-      ></button>
+      >
+        Done
+      </button>
     </div>
   );
 };
@@ -172,13 +188,15 @@ const NotInitialTurnScreen: React.FC<{
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">
-          OK, pass the fone to {playerName}! {playerName}, hit Ready when
-          you&apos;ve got the fone!
+          OK, pass the telefone to {playerName}! {playerName}, hit Ready when
+          you&apos;ve got the telefone!
         </h1>
         <button
           className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
           onClick={() => setSplash(false)}
-        ></button>
+        >
+          Ready
+        </button>
       </div>
     );
   }
@@ -193,12 +211,16 @@ const NotInitialTurnScreen: React.FC<{
   }
   return (
     <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-      <h1 className="text-4xl font-bold">
-        {playerName}, what&apos;s the caption for this image?
-      </h1>
-      <Image src={imageUrl} alt="Telefone" />
-      <input
-        type="text"
+      <h1 className="text-4xl font-bold">{playerName}, describe this image?</h1>
+      <h2 className="text-2xl font-semibold">
+        Be as vague or as specific as you want. You can focus on the literal
+        contents, the overall style, the way it makes you feel, or any
+        combination of the above.
+      </h2>
+      <img src={imageUrl} alt="Telefone" width={500} height={500} />
+      <textarea
+        rows={5}
+        className="border-2 border-black rounded-lg px-2 py-1 text-black w-6/12"
         placeholder="Enter a caption"
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
@@ -207,7 +229,9 @@ const NotInitialTurnScreen: React.FC<{
         className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
         onClick={() => onCaption(caption)}
         disabled={caption.trim() === ""}
-      ></button>
+      >
+        Done
+      </button>
     </div>
   );
 };
@@ -228,6 +252,7 @@ export default function Home() {
   if (moves.length === 0) {
     return (
       <InitialTurnScreen
+        key={moves.length}
         playerName={currentPlayer}
         onCaption={(caption) => {
           const id = makeid();
@@ -271,7 +296,12 @@ export default function Home() {
             <li key={move.id}>
               {move.playerName}: {move.caption}
               {move.imageUrl && (
-                <Image src={move.imageUrl} alt={move.caption} />
+                <img
+                  src={move.imageUrl}
+                  alt={move.caption}
+                  width={500}
+                  height={500}
+                />
               )}
             </li>
           ))}
@@ -293,6 +323,7 @@ export default function Home() {
 
   return (
     <NotInitialTurnScreen
+      key={moves.length}
       playerName={currentPlayer}
       imageUrl={moves[moves.length - 1].imageUrl}
       onCaption={(caption) => {
