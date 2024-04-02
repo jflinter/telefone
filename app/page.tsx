@@ -151,8 +151,8 @@ const InitialTurnScreen: React.FC<{
     <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
       <h1 className="text-4xl font-bold">OK {playerName}, describe a scene.</h1>
       <h2 className="text-2xl font-semibold">
-        Adding details about both style and content will help create a rich
-        image, but do whatever you want! Examples (it&apos;s ok to go longer):
+        Adding details about both style and content can be funny, but do
+        whatever you want! Examples (it&apos;s ok to go longer):
       </h2>
       <ul>
         {examples.map((example) => (
@@ -161,8 +161,8 @@ const InitialTurnScreen: React.FC<{
       </ul>
       <textarea
         rows={5}
-        className="border-2 border-black rounded-lg px-2 py-1 text-black w-6/12"
-        placeholder="Enter a caption"
+        className="border-2 border-black rounded-lg px-2 py-1 text-black w-full"
+        placeholder={`Get creative, ${playerName}`}
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
       />
@@ -220,8 +220,8 @@ const NotInitialTurnScreen: React.FC<{
       <img src={imageUrl} alt="Telefone" width={500} height={500} />
       <textarea
         rows={5}
-        className="border-2 border-black rounded-lg px-2 py-1 text-black w-6/12"
-        placeholder="Enter a caption"
+        className="border-2 border-black rounded-lg px-2 py-1 text-black w-full"
+        placeholder={`Get creative, ${playerName}`}
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
       />
