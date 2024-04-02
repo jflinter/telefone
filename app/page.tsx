@@ -1,13 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
-const MAX_MOVES = 10;
+const MAX_MOVES = 8;
 
 type Game = {
   playerNames: string[];
+  statusOverride: "gameOver" | null;
   moves: {
     id: string;
     playerName: string;
@@ -241,7 +241,9 @@ export default function Home() {
   if (game === null) {
     return (
       <StartScreen
-        onStarted={(playerNames) => setGame({ playerNames, moves: [] })}
+        onStarted={(playerNames) =>
+          setGame({ playerNames, moves: [], statusOverride: null })
+        }
       />
     );
   }
@@ -268,26 +270,34 @@ export default function Home() {
               },
             ],
           });
-          generateImageUrl(caption).then((imageUrl) => {
-            setGame((game) => {
-              if (!game) return game;
-              return {
-                ...game,
-                moves: game.moves.map((move) => {
-                  if (move.id === id) {
-                    move.imageUrl = imageUrl;
-                  }
-                  return move;
-                }),
-              };
+          generateImageUrl(caption)
+            .then((imageUrl) => {
+              setGame((game) => {
+                if (!game) return game;
+                return {
+                  ...game,
+                  moves: game.moves.map((move) => {
+                    if (move.id === id) {
+                      move.imageUrl = imageUrl;
+                    }
+                    return move;
+                  }),
+                };
+              });
+            })
+            .catch((error) => {
+              setGame((game) => {
+                if (!game) return game;
+                return { ...game, statusOverride: "gameOver" };
+              });
             });
-          });
         }}
       />
     );
   }
 
-  if (moves.length >= MAX_MOVES) {
+  const maxMoves = Math.max(playerNames.length, MAX_MOVES);
+  if (moves.length >= maxMoves || game.statusOverride === "gameOver") {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">Game Over!</h1>
@@ -312,6 +322,7 @@ export default function Home() {
             setGame({
               playerNames: shuffleArray(playerNames),
               moves: [],
+              statusOverride: null,
             })
           }
         >
@@ -340,20 +351,27 @@ export default function Home() {
             },
           ],
         });
-        generateImageUrl(caption).then((imageUrl) => {
-          setGame((game) => {
-            if (!game) return game;
-            return {
-              ...game,
-              moves: game.moves.map((move) => {
-                if (move.id === id) {
-                  move.imageUrl = imageUrl;
-                }
-                return move;
-              }),
-            };
+        generateImageUrl(caption)
+          .then((imageUrl) => {
+            setGame((game) => {
+              if (!game) return game;
+              return {
+                ...game,
+                moves: game.moves.map((move) => {
+                  if (move.id === id) {
+                    move.imageUrl = imageUrl;
+                  }
+                  return move;
+                }),
+              };
+            });
+          })
+          .catch((error) => {
+            setGame((game) => {
+              if (!game) return game;
+              return { ...game, statusOverride: "gameOver" };
+            });
           });
-        });
       }}
     />
   );
