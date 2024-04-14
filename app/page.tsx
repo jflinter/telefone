@@ -29,7 +29,6 @@ const exportPDF = () => {
 
 type Game = {
   playerNames: string[];
-  statusOverride: "gameOver" | null;
   moves: {
     id: string;
     playerName: string;
@@ -337,13 +336,12 @@ const NotInitialTurnScreen: React.FC<{
 };
 
 export default function Home() {
-  const [game, setGame] = useLocalStorage<Game | null>("telefone-game", null);
+  const [game, setGame] = useLocalStorage<Game | null>(makeid(), null);
+  const [gameOver, setGameOver] = useState(false);
   if (game === null) {
     return (
       <StartScreen
-        onStarted={(playerNames) =>
-          setGame({ playerNames, moves: [], statusOverride: null })
-        }
+        onStarted={(playerNames) => setGame({ playerNames, moves: [] })}
       />
     );
   }
@@ -353,7 +351,7 @@ export default function Home() {
 
   const onCaption = (caption: string) => {
     const id = makeid();
-    setGame({
+    const temporaryGame = {
       ...game,
       moves: [
         ...moves,
@@ -365,23 +363,25 @@ export default function Home() {
           error: null,
         },
       ],
-    });
+    };
+    setGame(temporaryGame);
     generateImageUrl(caption)
       .then((imageUrl) => {
-        setGame({
-          ...game,
-          moves: game.moves.map((move) => {
+        const newGame = {
+          ...temporaryGame,
+          moves: temporaryGame.moves.map((move) => {
             if (move.id === id) {
               move.imageUrl = imageUrl;
             }
             return move;
           }),
-        });
+        };
+        setGame(newGame);
       })
       .catch((error) => {
         setGame({
-          ...game,
-          moves: game.moves.map((move) => {
+          ...temporaryGame,
+          moves: temporaryGame.moves.map((move) => {
             if (move.id === id) {
               move.error = error;
             }
@@ -401,7 +401,7 @@ export default function Home() {
     );
   }
 
-  if (game.statusOverride === "gameOver") {
+  if (gameOver) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">Game Over!</h1>
@@ -425,17 +425,20 @@ export default function Home() {
         </ul>
         <Button onClick={exportPDF} title="Share game" />
         <Button
-          onClick={() =>
+          onClick={() => {
             setGame({
               playerNames: shuffleArray(playerNames),
               moves: [],
-              statusOverride: null,
-            })
-          }
+            });
+            setGameOver(false);
+          }}
           title="Play Again (same players)"
         />
         <Button
-          onClick={() => setGame(null)}
+          onClick={() => {
+            setGame(null);
+            setGameOver(false);
+          }}
           title="Play Again (new players)"
         />
       </div>
@@ -447,7 +450,7 @@ export default function Home() {
     imageToUse = moves[moves.length - 1].imageUrl;
   }
   const onEndGame = () => {
-    setGame({ ...game, statusOverride: "gameOver" });
+    setGameOver(true);
   };
   return (
     <NotInitialTurnScreen

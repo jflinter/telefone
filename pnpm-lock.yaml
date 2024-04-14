@@ -23,6 +23,9 @@ dependencies:
   react-dom:
     specifier: ^18
     version: 18.2.0(react@18.2.0)
+  substrate:
+    specifier: ^120240411.0.9
+    version: 120240411.0.9
 
 devDependencies:
   '@types/node':
@@ -2863,6 +2866,16 @@ packages:
     dependencies:
       client-only: 0.0.1
       react: 18.2.0
+    dev: false
+
+  /substrate@120240411.0.9:
+    resolution: {integrity: sha512-4O0krhEgGA8IsAr/szSG6JD1B+2nFQR7A0n/sGIHFZJ3Imn8BFVDnigBcuBD1i8X/lKBLryVErRfngIG4l6ShQ==}
+    engines: {node: '>=16'}
+    dependencies:
+      '@types/node-fetch': 2.6.11
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
     dev: false
 
   /sucrase@3.35.0:

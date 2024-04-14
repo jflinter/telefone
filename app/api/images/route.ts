@@ -1,10 +1,13 @@
 import OpenAI from "openai";
+import { Substrate } from "substrate";
 
 export const runtime = "edge";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const substrate = new Substrate({ apiKey: process.env.SUBSTRATE_API_KEY });
 
 async function generateImage(
   prompt: string,
