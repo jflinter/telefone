@@ -1,9 +1,31 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const MAX_MOVES = 8;
+
+const exportPDF = () => {
+  const input = document.body;
+  if (!input) return;
+
+  html2canvas(input)
+    .then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+      });
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save("download.pdf");
+    })
+    .catch((error) => {
+      console.error("Failed to generate PDF:", error);
+    });
+};
 
 type Game = {
   playerNames: string[];
@@ -13,8 +35,62 @@ type Game = {
     playerName: string;
     caption: string;
     imageUrl: string | null;
+    error: unknown | null;
   }[];
 };
+
+function useLocalStorage<T>(
+  key: string,
+  initialValue: T
+): [T, (value: T) => void, () => void] {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error("Error reading localStorage key:", key, error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T) => {
+    try {
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error("Error setting localStorage key:", key, error);
+    }
+  };
+
+  const removeValue = () => {
+    try {
+      window.localStorage.removeItem(key);
+      setStoredValue(initialValue);
+    } catch (error) {
+      console.error("Error removing localStorage key:", key, error);
+    }
+  };
+
+  React.useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === key) {
+        setStoredValue(
+          event.newValue ? JSON.parse(event.newValue) : initialValue
+        );
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [key, initialValue]);
+
+  return [storedValue, setValue, removeValue];
+}
 
 async function generateImageUrl(caption: string): Promise<string> {
   const response = await fetch("/api/images", {
@@ -50,6 +126,20 @@ function makeid() {
   return result;
 }
 
+const Button: React.FC<{
+  onClick: () => void;
+  title: string;
+  disabled?: boolean;
+}> = ({ onClick, title, disabled = false }) => (
+  <button
+    className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
+    onClick={onClick}
+    disabled={disabled}
+  >
+    {title}
+  </button>
+);
+
 const StartScreen: React.FC<{ onStarted: (playerNames: string[]) => void }> = ({
   onStarted,
 }) => {
@@ -68,12 +158,7 @@ const StartScreen: React.FC<{ onStarted: (playerNames: string[]) => void }> = ({
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">Telefone!</h1>
-        <button
-          className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
-          onClick={() => setSplash(false)}
-        >
-          Start
-        </button>
+        <Button onClick={() => setSplash(false)} title="Start" />
       </div>
     );
   }
@@ -92,6 +177,18 @@ const StartScreen: React.FC<{ onStarted: (playerNames: string[]) => void }> = ({
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
+          // @ts-expect-error
+          enterKeyHint="Add"
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.nativeEvent.isComposing
+            ) {
+              event.preventDefault();
+              handleAddName();
+            }
+          }}
           placeholder="Enter a name"
         />
         <button
@@ -138,12 +235,7 @@ const InitialTurnScreen: React.FC<{
           OK, pass the telefone to {playerName}! {playerName}, hit Ready when
           you&apos;re, you know, ready!
         </h1>
-        <button
-          className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
-          onClick={() => setSplash(false)}
-        >
-          Ready
-        </button>
+        <Button onClick={() => setSplash(false)} title="Ready" />
       </div>
     );
   }
@@ -166,13 +258,25 @@ const InitialTurnScreen: React.FC<{
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
       />
-      <button
-        className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
+      <Button
         onClick={() => onCaption(caption)}
+        title="Done"
         disabled={caption.trim() === ""}
-      >
-        Done
-      </button>
+      />
+    </div>
+  );
+};
+
+const LoadingScreen = () => {
+  const [counter, setCounter] = useState(0);
+  useInterval(() => {
+    setCounter((c) => c + 1);
+  }, 1000);
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
+      <h1 className="text-4xl font-bold">
+        Waiting for image (this will just be a second){".".repeat(counter)}
+      </h1>
     </div>
   );
 };
@@ -181,33 +285,31 @@ const NotInitialTurnScreen: React.FC<{
   playerName: string;
   imageUrl: string | null;
   onCaption: (caption: string) => void;
-}> = ({ playerName, imageUrl, onCaption }) => {
+  onEndGame: null | (() => void);
+}> = ({ playerName, imageUrl, onCaption, onEndGame }) => {
   const [splash, setSplash] = useState<boolean>(true);
   const [caption, setCaption] = useState<string>("");
   if (splash) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-        <h1 className="text-4xl font-bold">
+        <h2 className="text-2xl font-bold">
           OK, pass the telefone to {playerName}! {playerName}, hit Ready when
           you&apos;ve got the telefone!
-        </h1>
-        <button
-          className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
-          onClick={() => setSplash(false)}
-        >
-          Ready
-        </button>
+        </h2>
+        <Button onClick={() => setSplash(false)} title="Ready" />
+        {onEndGame && (
+          <>
+            <h3 className="text-xl font-semibold">
+              Or, if you&apos;re ready to end the game...
+            </h3>
+            <Button onClick={onEndGame} title="End the game!" />
+          </>
+        )}
       </div>
     );
   }
   if (!imageUrl) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
-        <h1 className="text-4xl font-bold">
-          Waiting for image (this will just be a second)...
-        </h1>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   return (
     <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
@@ -225,19 +327,17 @@ const NotInitialTurnScreen: React.FC<{
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
       />
-      <button
-        className="px-4 py-2 text-lg font-bold text-white bg-blue-500 rounded-lg"
+      <Button
         onClick={() => onCaption(caption)}
+        title="Done"
         disabled={caption.trim() === ""}
-      >
-        Done
-      </button>
+      />
     </div>
   );
 };
 
 export default function Home() {
-  const [game, setGame] = useState<Game | null>(null);
+  const [game, setGame] = useLocalStorage<Game | null>("telefone-game", null);
   if (game === null) {
     return (
       <StartScreen
@@ -251,53 +351,57 @@ export default function Home() {
   const currentPlayerIndex = moves.length % playerNames.length;
   const currentPlayer = playerNames[currentPlayerIndex];
 
+  const onCaption = (caption: string) => {
+    const id = makeid();
+    setGame({
+      ...game,
+      moves: [
+        ...moves,
+        {
+          id,
+          playerName: currentPlayer,
+          caption,
+          imageUrl: null,
+          error: null,
+        },
+      ],
+    });
+    generateImageUrl(caption)
+      .then((imageUrl) => {
+        setGame({
+          ...game,
+          moves: game.moves.map((move) => {
+            if (move.id === id) {
+              move.imageUrl = imageUrl;
+            }
+            return move;
+          }),
+        });
+      })
+      .catch((error) => {
+        setGame({
+          ...game,
+          moves: game.moves.map((move) => {
+            if (move.id === id) {
+              move.error = error;
+            }
+            return move;
+          }),
+        });
+      });
+  };
+
   if (moves.length === 0) {
     return (
       <InitialTurnScreen
         key={moves.length}
         playerName={currentPlayer}
-        onCaption={(caption) => {
-          const id = makeid();
-          setGame({
-            ...game,
-            moves: [
-              ...moves,
-              {
-                id,
-                playerName: currentPlayer,
-                caption,
-                imageUrl: null,
-              },
-            ],
-          });
-          generateImageUrl(caption)
-            .then((imageUrl) => {
-              setGame((game) => {
-                if (!game) return game;
-                return {
-                  ...game,
-                  moves: game.moves.map((move) => {
-                    if (move.id === id) {
-                      move.imageUrl = imageUrl;
-                    }
-                    return move;
-                  }),
-                };
-              });
-            })
-            .catch((error) => {
-              setGame((game) => {
-                if (!game) return game;
-                return { ...game, statusOverride: "gameOver" };
-              });
-            });
-        }}
+        onCaption={onCaption}
       />
     );
   }
 
-  const maxMoves = Math.max(playerNames.length, MAX_MOVES);
-  if (moves.length >= maxMoves || game.statusOverride === "gameOver") {
+  if (game.statusOverride === "gameOver") {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">Game Over!</h1>
@@ -305,6 +409,9 @@ export default function Home() {
           {moves.map((move) => (
             <li key={move.id}>
               {move.playerName}: {move.caption}
+              {move.error
+                ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
+                : ""}
               {move.imageUrl && (
                 <img
                   src={move.imageUrl}
@@ -316,8 +423,8 @@ export default function Home() {
             </li>
           ))}
         </ul>
-        <button onClick={() => setGame(null)}>Play Again (same players)</button>
-        <button
+        <Button onClick={exportPDF} title="Share game" />
+        <Button
           onClick={() =>
             setGame({
               playerNames: shuffleArray(playerNames),
@@ -325,54 +432,49 @@ export default function Home() {
               statusOverride: null,
             })
           }
-        >
-          Play Again (new players)
-        </button>
+          title="Play Again (same players)"
+        />
+        <Button
+          onClick={() => setGame(null)}
+          title="Play Again (new players)"
+        />
       </div>
     );
   }
 
+  let imageToUse = moves[moves.length - 1].imageUrl;
+  if (moves[moves.length - 1].error) {
+    imageToUse = moves[moves.length - 1].imageUrl;
+  }
+  const onEndGame = () => {
+    setGame({ ...game, statusOverride: "gameOver" });
+  };
   return (
     <NotInitialTurnScreen
       key={moves.length}
       playerName={currentPlayer}
-      imageUrl={moves[moves.length - 1].imageUrl}
-      onCaption={(caption) => {
-        const id = makeid();
-        setGame({
-          ...game,
-          moves: [
-            ...moves,
-            {
-              id,
-              playerName: currentPlayer,
-              caption,
-              imageUrl: null,
-            },
-          ],
-        });
-        generateImageUrl(caption)
-          .then((imageUrl) => {
-            setGame((game) => {
-              if (!game) return game;
-              return {
-                ...game,
-                moves: game.moves.map((move) => {
-                  if (move.id === id) {
-                    move.imageUrl = imageUrl;
-                  }
-                  return move;
-                }),
-              };
-            });
-          })
-          .catch((error) => {
-            setGame((game) => {
-              if (!game) return game;
-              return { ...game, statusOverride: "gameOver" };
-            });
-          });
-      }}
+      imageUrl={imageToUse}
+      onCaption={onCaption}
+      onEndGame={moves.length >= 2 ? onEndGame : null}
     />
   );
+}
+
+function useInterval(
+  callback: () => void,
+  delay: number | null
+): React.MutableRefObject<number | null> {
+  const intervalRef = React.useRef<number | null>(null);
+  const savedCallback = React.useRef<() => void>(callback);
+  React.useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+  React.useEffect(() => {
+    const tick = () => savedCallback.current();
+    if (typeof delay === "number") {
+      intervalRef.current = window.setInterval(tick, delay);
+      return () => window.clearInterval(intervalRef.current ?? undefined);
+    }
+  }, [delay]);
+  return intervalRef;
 }
