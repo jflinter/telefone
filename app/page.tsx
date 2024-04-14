@@ -458,7 +458,7 @@ export default function Home() {
       playerName={currentPlayer}
       imageUrl={imageToUse}
       onCaption={onCaption}
-      onEndGame={moves.length >= 2 ? onEndGame : null}
+      onEndGame={moves.length > 2 ? onEndGame : null}
     />
   );
 }
