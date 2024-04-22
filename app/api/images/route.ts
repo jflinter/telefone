@@ -45,6 +45,20 @@ async function generateImage(
   return url;
 }
 
+function makeid() {
+  const length = 5;
+  let result = "";
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
+
 export async function POST(req: Request) {
   const json = await req.json();
   const { caption } = json;
@@ -53,3 +67,36 @@ export async function POST(req: Request) {
 }
 
 // a beautiful raccoon, having finally achieved his dream (a nice cabin), only to realize that true happiness does not come from material means. in the style of munch's the scream
+
+async function uploadImageToR2(
+  imageData: Buffer,
+  bucketName: string,
+  fileName: string,
+  accountId: string,
+  authKey: string
+): Promise<void> {
+  const endpoint = new URL(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${bucketName}/values/${fileName}`
+  );
+
+  // b012vDwQ8iUWCLtSLWhBRHgDPssH5-090eextrSQ
+  // 6db85b9de848b92ef56a7b5c08c49e6b
+  // faf1f867f6b7715c2d4f642efd8508f6fc576e6e20e0c16315c45012d04faace
+  const response = await fetch(endpoint.href, {
+    method: "PUT",
+    headers: {
+      // Authorization: `Bearer ${"b012vDwQ8iUWCLtSLWhBRHgDPssH5-090eextrSQ"}`,
+      "X-Auth-Email": "jflinter11@gmail.com",
+      "X-Auth-Key": "b012vDwQ8iUWCLtSLWhBRHgDPssH5-090eextrSQ",
+      "Content-Type": "application/octet-stream",
+    },
+    body: imageData,
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to upload to R2: ${response.statusText} ${body}`);
+  }
+
+  console.log("Upload successful!");
+}

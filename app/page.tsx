@@ -2,29 +2,75 @@
 "use client";
 
 import React, { useState } from "react";
-import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 const MAX_MOVES = 8;
 
-const exportPDF = () => {
-  const input = document.body;
-  if (!input) return;
+function convertImageToDataUrl(imgElement: HTMLImageElement): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Create an off-screen canvas
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
-  html2canvas(input)
-    .then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [canvas.width, canvas.height],
+    // Set canvas dimensions
+    canvas.width = imgElement.naturalWidth;
+    canvas.height = imgElement.naturalHeight;
+
+    // Draw the image on canvas
+    ctx?.drawImage(imgElement, 0, 0);
+
+    // Convert canvas to Data URL
+    resolve(canvas.toDataURL("image/png"));
+  });
+}
+
+async function convertImagesToDataUrls(parentElement: HTMLElement) {
+  const images = parentElement.getElementsByTagName("img");
+  Array.from(images).forEach(async (img) => {
+    if (!img.src.startsWith("data:")) {
+      // Check if not already a Data URL
+      try {
+        const dataUrl = await convertImageToDataUrl(img);
+        img.src = dataUrl;
+      } catch (error) {
+        console.error("Error converting image to data URL:", error);
+      }
+    }
+  });
+}
+
+const exportPDF = () => {
+  const divElement = document.body;
+  if (divElement) {
+    convertImagesToDataUrls(divElement).then(() => {
+      html2canvas(divElement, { scale: 1, useCORS: true }).then((canvas) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "screenshot.png", {
+              type: "image/png",
+            });
+
+            // Attempt to share using the Web Share API
+            if (navigator.share) {
+              navigator
+                .share({
+                  title: "Telefone!",
+                  files: [file],
+                })
+                .then(() => {
+                  console.log("Shared successfully!");
+                })
+                .catch((error) => {
+                  console.error("Error sharing:", error);
+                });
+            } else {
+              console.error("Web Share API is not supported.");
+            }
+          }
+        }, "image/png");
       });
-      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-      pdf.save("download.pdf");
-    })
-    .catch((error) => {
-      console.error("Failed to generate PDF:", error);
     });
+  }
 };
 
 type Game = {
@@ -91,8 +137,30 @@ function useLocalStorage<T>(
   return [storedValue, setValue, removeValue];
 }
 
-async function generateImageUrl(caption: string): Promise<string> {
-  const response = await fetch("/api/images", {
+async function getFirstSuccessful<ResultType>(
+  promise1: Promise<ResultType>,
+  promise2: Promise<ResultType>
+): Promise<ResultType> {
+  const [result1, result2] = await Promise.all([
+    promise1
+      .then((value) => ({ status: "fulfilled" as const, value }))
+      .catch((error) => ({ status: "rejected" as const, error })),
+    promise2
+      .then((value) => ({ status: "fulfilled" as const, value }))
+      .catch((error) => ({ status: "rejected" as const, error })),
+  ]);
+
+  if (result1.status === "fulfilled") {
+    return result1.value;
+  } else if (result2.status === "fulfilled") {
+    return result2.value;
+  } else {
+    throw new Error("Both promises failed");
+  }
+}
+
+async function generateDalleImageUrl(caption: string): Promise<string> {
+  const response = await fetch("/api/dalle", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -101,6 +169,27 @@ async function generateImageUrl(caption: string): Promise<string> {
   });
   const { imageUrl } = await response.json();
   return imageUrl;
+}
+
+async function generateStableDiffusionImageUrl(
+  caption: string
+): Promise<string> {
+  const response = await fetch("/api/stablediffusion", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ caption }),
+  });
+  const { imageUrl } = await response.json();
+  return imageUrl;
+}
+
+async function generateImageUrl(caption: string): Promise<string> {
+  return getFirstSuccessful(
+    generateDalleImageUrl(caption),
+    generateStableDiffusionImageUrl(caption)
+  );
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -423,6 +512,29 @@ export default function Home() {
             </li>
           ))}
         </ul>
+        <div className="hidden">
+          <div id="pdf-game">
+            <h1 className="text-4xl font-bold">Telefone!</h1>
+            <ul>
+              {moves.map((move) => (
+                <li key={move.id}>
+                  {move.playerName}: {move.caption}
+                  {move.error
+                    ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
+                    : ""}
+                  {move.imageUrl && (
+                    <img
+                      src={move.imageUrl}
+                      alt={move.caption}
+                      width={500}
+                      height={500}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
         <Button onClick={exportPDF} title="Share game" />
         <Button
           onClick={() => {
