@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { saveImage } from "../saveImage";
 
 export const runtime = "edge";
 
@@ -29,5 +30,6 @@ export async function POST(req: Request) {
   const json = await req.json();
   const { caption } = json;
   const imageUrl = await generateImage(caption);
-  return new Response(JSON.stringify({ imageUrl }));
+  const savedImageURL = await saveImage(imageUrl);
+  return new Response(JSON.stringify({ imageUrl: savedImageURL }));
 }
