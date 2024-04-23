@@ -40,35 +40,33 @@ async function convertImagesToDataUrls(parentElement: HTMLElement) {
 }
 
 const exportPDF = () => {
-  const divElement = document.body;
+  const divElement = document.getElementById("game-contents");
   if (divElement) {
-    convertImagesToDataUrls(divElement).then(() => {
-      html2canvas(divElement, { scale: 1, useCORS: true }).then((canvas) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], "screenshot.png", {
-              type: "image/png",
-            });
+    html2canvas(divElement, { scale: 1, useCORS: true }).then((canvas) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], "screenshot.png", {
+            type: "image/png",
+          });
 
-            // Attempt to share using the Web Share API
-            if (navigator.share) {
-              navigator
-                .share({
-                  title: "Telefone!",
-                  files: [file],
-                })
-                .then(() => {
-                  console.log("Shared successfully!");
-                })
-                .catch((error) => {
-                  console.error("Error sharing:", error);
-                });
-            } else {
-              console.error("Web Share API is not supported.");
-            }
+          // Attempt to share using the Web Share API
+          if (navigator.share) {
+            navigator
+              .share({
+                title: "Telefone!",
+                files: [file],
+              })
+              .then(() => {
+                console.log("Shared successfully!");
+              })
+              .catch((error) => {
+                console.error("Error sharing:", error);
+              });
+          } else {
+            console.error("Web Share API is not supported.");
           }
-        }, "image/png");
-      });
+        }
+      }, "image/png");
     });
   }
 };
@@ -425,7 +423,7 @@ const NotInitialTurnScreen: React.FC<{
 };
 
 export default function Home() {
-  const [game, setGame] = useLocalStorage<Game | null>(makeid(), null);
+  const [game, setGame] = useState<Game | null>(null);
   const [gameOver, setGameOver] = useState(false);
   if (game === null) {
     return (
@@ -494,46 +492,28 @@ export default function Home() {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">Game Over!</h1>
-        <ul>
-          {moves.map((move) => (
-            <li key={move.id}>
-              {move.playerName}: {move.caption}
-              {move.error
-                ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
-                : ""}
-              {move.imageUrl && (
-                <img
-                  src={move.imageUrl}
-                  alt={move.caption}
-                  width={500}
-                  height={500}
-                />
-              )}
-            </li>
-          ))}
-        </ul>
-        <div className="hidden">
-          <div id="pdf-game">
-            <h1 className="text-4xl font-bold">Telefone!</h1>
-            <ul>
-              {moves.map((move) => (
-                <li key={move.id}>
-                  {move.playerName}: {move.caption}
-                  {move.error
-                    ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
-                    : ""}
-                  {move.imageUrl && (
-                    <img
-                      src={move.imageUrl}
-                      alt={move.caption}
-                      width={500}
-                      height={500}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div id="game-contents">
+          <ul>
+            {moves.map((move) => (
+              <li key={move.id}>
+                {move.playerName}: {move.caption}
+                {move.error
+                  ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
+                  : ""}
+                {move.imageUrl ? (
+                  <img
+                    src={move.imageUrl}
+                    alt={move.caption}
+                    width={500}
+                    height={500}
+                    className="mb-6"
+                  />
+                ) : (
+                  "Image still loading :)"
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
         <Button onClick={exportPDF} title="Share game" />
         <Button
