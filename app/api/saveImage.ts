@@ -55,7 +55,7 @@ export async function saveImage(imageUrl: string) {
     .from("images")
     .upload(id, imageData);
   if (error) {
-    throw error;
+    return imageUrl;
   }
   return `https://rmzyesumpxgghronunfu.supabase.co/storage/v1/object/public/images/${data.path}`;
 }

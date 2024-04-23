@@ -424,9 +424,8 @@ const NotInitialTurnScreen: React.FC<{
   );
 };
 
-const storagekey = "telefone-game";
 export default function Home() {
-  const [game, setGame] = useLocalStorage<Game | null>(storagekey, null);
+  const [game, setGame] = useLocalStorage<Game | null>(makeid(), null);
   const [gameOver, setGameOver] = useState(false);
   if (game === null) {
     return (
