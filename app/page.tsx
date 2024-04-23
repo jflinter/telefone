@@ -431,25 +431,29 @@ export default function Home() {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full space-y-4">
         <h1 className="text-4xl font-bold">Game Over!</h1>
-        <div id="game-contents">
+        <div id="game-contents" className="p-4">
           <ul>
             {moves.map((move) => (
               <li key={move.id}>
-                {move.playerName}: {move.caption}
-                {move.error
-                  ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
-                  : ""}
-                {move.imageUrl ? (
-                  <img
-                    src={move.imageUrl}
-                    alt={move.caption}
-                    width={500}
-                    height={500}
-                    className="mb-6"
-                  />
-                ) : (
-                  "Image still loading :)"
-                )}
+                <div className="mb-4">
+                  {move.playerName}: {move.caption}
+                </div>
+                <div>
+                  {move.error
+                    ? "Sadly there was an error making this pic (sometimes the AI is cowardly) so we skipped it."
+                    : ""}
+                  {move.imageUrl ? (
+                    <img
+                      src={move.imageUrl}
+                      alt={move.caption}
+                      width={500}
+                      height={500}
+                      className="mb-8"
+                    />
+                  ) : (
+                    "Image still loading :)"
+                  )}
+                </div>
               </li>
             ))}
           </ul>
