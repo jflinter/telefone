@@ -1,43 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import html2canvas from "html2canvas";
-
-const MAX_MOVES = 8;
-
-function convertImageToDataUrl(imgElement: HTMLImageElement): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // Create an off-screen canvas
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    // Set canvas dimensions
-    canvas.width = imgElement.naturalWidth;
-    canvas.height = imgElement.naturalHeight;
-
-    // Draw the image on canvas
-    ctx?.drawImage(imgElement, 0, 0);
-
-    // Convert canvas to Data URL
-    resolve(canvas.toDataURL("image/png"));
-  });
-}
-
-async function convertImagesToDataUrls(parentElement: HTMLElement) {
-  const images = parentElement.getElementsByTagName("img");
-  Array.from(images).forEach(async (img) => {
-    if (!img.src.startsWith("data:")) {
-      // Check if not already a Data URL
-      try {
-        const dataUrl = await convertImageToDataUrl(img);
-        img.src = dataUrl;
-      } catch (error) {
-        console.error("Error converting image to data URL:", error);
-      }
-    }
-  });
-}
 
 const exportPDF = () => {
   const divElement = document.getElementById("game-contents");
@@ -81,59 +46,6 @@ type Game = {
     error: unknown | null;
   }[];
 };
-
-function useLocalStorage<T>(
-  key: string,
-  initialValue: T
-): [T, (value: T) => void, () => void] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error("Error reading localStorage key:", key, error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T) => {
-    try {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error("Error setting localStorage key:", key, error);
-    }
-  };
-
-  const removeValue = () => {
-    try {
-      window.localStorage.removeItem(key);
-      setStoredValue(initialValue);
-    } catch (error) {
-      console.error("Error removing localStorage key:", key, error);
-    }
-  };
-
-  React.useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === key) {
-        setStoredValue(
-          event.newValue ? JSON.parse(event.newValue) : initialValue
-        );
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [key, initialValue]);
-
-  return [storedValue, setValue, removeValue];
-}
 
 async function getFirstSuccessful<ResultType>(
   promise1: Promise<ResultType>,
@@ -423,8 +335,35 @@ const NotInitialTurnScreen: React.FC<{
 };
 
 export default function Home() {
-  const [game, setGame] = useState<Game | null>(null);
+  let [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (window) {
+      setLoaded(true);
+    }
+  }, []);
+  let existingGame: Game | null = null;
+  if (typeof window !== "undefined") {
+    const storedGame = window.localStorage.getItem("telefone-game");
+    if (storedGame) {
+      existingGame = JSON.parse(storedGame);
+    }
+  }
+  const [game, setGameInner] = useState<Game | null>(existingGame);
   const [gameOver, setGameOver] = useState(false);
+  if (!loaded) {
+    return <div />;
+  }
+  const setGame = (newGame: Game | null) => {
+    setGameInner(newGame);
+    if (newGame) {
+      if (newGame.moves[newGame.moves.length - 1]?.imageUrl) {
+        // only persist if we're not currently waiting
+        localStorage.setItem("telefone-game", JSON.stringify(newGame));
+      }
+    } else {
+      localStorage.removeItem("telefone-game");
+    }
+  };
   if (game === null) {
     return (
       <StartScreen
