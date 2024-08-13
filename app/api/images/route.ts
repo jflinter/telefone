@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { Substrate, StableDiffusionXL } from "substrate";
+import { Substrate, GenerateImage } from "substrate";
 
 export const runtime = "edge";
 
@@ -27,15 +27,12 @@ async function generateImage(
     });
   } catch (error) {
     // if dall-e fails try substrate
-    const image = new StableDiffusionXL({
+    const image = new GenerateImage({
       prompt: prompt,
       store: "hosted",
-      height: 1024,
-      width: 1024,
-      num_images: 1,
     });
     const result = await substrate.run(image);
-    return result.get(image).outputs[0].image_uri;
+    return result.get(image).image_uri;
   }
 
   const url = response.data[0].url;
