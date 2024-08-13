@@ -27,8 +27,8 @@ dependencies:
     specifier: ^18
     version: 18.2.0(react@18.2.0)
   substrate:
-    specifier: ^120240411.0.9
-    version: 120240411.0.9
+    specifier: ^120240617.1.9
+    version: 120240617.1.9
 
 devDependencies:
   '@types/node':
@@ -2431,6 +2431,10 @@ packages:
       p-limit: 3.1.0
     dev: true
 
+  /pako@2.1.0:
+    resolution: {integrity: sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==}
+    dev: false
+
   /parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
@@ -2938,12 +2942,13 @@ packages:
       react: 18.2.0
     dev: false
 
-  /substrate@120240411.0.9:
-    resolution: {integrity: sha512-4O0krhEgGA8IsAr/szSG6JD1B+2nFQR7A0n/sGIHFZJ3Imn8BFVDnigBcuBD1i8X/lKBLryVErRfngIG4l6ShQ==}
+  /substrate@120240617.1.9:
+    resolution: {integrity: sha512-B+tx+W+JFyExg4GqWnwMrFy1uwCwpVJhzoKP4qVTdztsFRAclG1yJdsHqdJrUj5HRdzf23idE+xlKair4Go/1g==}
     engines: {node: '>=16'}
     dependencies:
       '@types/node-fetch': 2.6.11
       node-fetch: 2.7.0
+      pako: 2.1.0
     transitivePeerDependencies:
       - encoding
     dev: false

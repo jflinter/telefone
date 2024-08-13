@@ -42,20 +42,21 @@ async function fetchImageData(url: string): Promise<Blob> {
 }
 
 export async function saveImage(imageUrl: string) {
-  const imageData = await fetchImageData(imageUrl);
-  const today = new Date();
-  const yesterday = new Date(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    today.getUTCDate() - 1
-  );
-  const todayDate = dateToString(today);
-  const id = `${todayDate}/${makeid()}.png`;
-  const { data, error } = await supabase.storage
-    .from("images")
-    .upload(id, imageData);
-  if (error) {
-    return imageUrl;
-  }
-  return `https://rmzyesumpxgghronunfu.supabase.co/storage/v1/object/public/images/${data.path}`;
+  return imageUrl;
+  // const imageData = await fetchImageData(imageUrl);
+  // const today = new Date();
+  // const yesterday = new Date(
+  //   today.getUTCFullYear(),
+  //   today.getUTCMonth(),
+  //   today.getUTCDate() - 1
+  // );
+  // const todayDate = dateToString(today);
+  // const id = `${todayDate}/${makeid()}.png`;
+  // const { data, error } = await supabase.storage
+  //   .from("images")
+  //   .upload(id, imageData);
+  // if (error) {
+  //   return imageUrl;
+  // }
+  // return `https://rmzyesumpxgghronunfu.supabase.co/storage/v1/object/public/images/${data.path}`;
 }

@@ -16,7 +16,7 @@
     "openai": "^4.30.0",
     "react": "^18",
     "react-dom": "^18",
-    "substrate": "^120240411.0.9"
+    "substrate": "^120240617.1.9"
   },
   "devDependencies": {
     "@types/node": "^20",
